@@ -189,15 +189,20 @@ private _fnc_init = {
         0 call TFAR_fnc_setVoiceVolume;
         CLib_Player setVariable ["tf_unable_to_use_radio", true];
         CLib_Player setVariable ["tf_forcedCurator", true];
+		// TODO: These settings have to be reverted when the spectator is closed
     };
 
     if (GVAR(aceLoaded)) then {
+		// Add Earlugs and make player invulnerable via ACE's medic system
+		// Also make sure that the player's hearing won't be affected by anything
         [CLib_Player] call ace_hearing_fnc_putInEarplugs;
         CLib_Player setVariable ["ACE_Medical_allowDamage", false];
         ACE_Hearing_deafnessDV = 0;
         ACE_Hearing_volume = 1;
+		// TODO: These settings have to be reverted when the spectator is closed
     };
 
+	// Make sure above settings won't be changed
     [{
         if (GVAR(aceLoaded)) then {
             CLib_Player setVariable ["ACE_Medical_allowDamage", false];
@@ -206,13 +211,19 @@ private _fnc_init = {
         };
         CLib_Player setDamage 0;
     }, 0.5] call CFUNC(addPerFrameHandler);
+	// TOOD: This PFH has to be removed when the spectator is being closed
 
+	// Make the player object disappear and use vanilla tools to make the player invulnerable
     ["enableSimulation", [CLib_Player, false]] call CFUNC(serverEvent);
     ["hideObject", [CLib_Player, true]] call CFUNC(serverEvent);
     CLib_Player allowDamage false;
+	// TODO: This has to be reversed when the spectator interface is being closed
+	// For this we might need to store the previous values of the respective stati
 
-    // Disable BI
+    // Disable the BI spectator mode
     ["Terminate"] call BIS_fnc_EGSpectator;
+	
+	// Set input-EHs that will delegate to the respective functions in ./Input
     (findDisplay 46) displayAddEventHandler ["MouseMoving", {_this call FUNC(mouseMovingEH)}];
     (findDisplay 46) displayAddEventHandler ["KeyDown", {_this call FUNC(keyDownEH)}];
     (findDisplay 46) displayAddEventHandler ["KeyUp", {_this call FUNC(keyUpEH)}];
@@ -229,17 +240,20 @@ private _fnc_init = {
             GVAR(PlanningModeDrawing) = false;
         };
     }];
-    ["enableSimulation", [CLib_Player, false]] call CFUNC(serverEvent);
-    ["hideObject", [CLib_Player, true]] call CFUNC(serverEvent);
+	// This should be duplicate code
+    // ["enableSimulation", [CLib_Player, false]] call CFUNC(serverEvent);
+    // ["hideObject", [CLib_Player, true]] call CFUNC(serverEvent);
 
     call FUNC(buildUI);
 
     QGVAR(updateInput) call CFUNC(localEvent);
 
     [DFUNC(cameraUpdateLoop), 0] call CFUNC(addPerFrameHandler);
+	// TODO: This PFH has to be removed when the spectator is closed
 };
 
 if (CLib_player isKindof "VirtualSpectator_F" && side CLib_player isEqualTo sideLogic) then {
+	// Wait for the BI spectator to get initialized properly so we can shut it down properly
     [_fnc_init, {
         (missionNamespace getVariable ["BIS_EGSpectator_initialized", false]) && !isNull findDisplay 60492;
     }] call CFUNC(waitUntil);
@@ -291,10 +305,12 @@ if (GVAR(TFARLoaded)) then {
         DUMP("Listen To Radio: " + _result + " " + _request);
         tf_lastFrequencyInfoTick = diag_tickTime + 10;
     }, 0.5] call CFUNC(addPerFrameHandler);
+	// TODO: This EH has to be removed when the spectator is closed
 };
 
 // Camera Update PFH
 addMissionEventHandler ["Draw3D", {call DFUNC(draw3dEH)}];
+// TODO: This EH has to be removed when the spectator is closed
 
 call FUNC(updateSpectatorArray);
 [
@@ -303,3 +319,4 @@ call FUNC(updateSpectatorArray);
         _angle = getDirVisual GVAR(Camera);
     }]]
 ] call CFUNC(addMapGraphicsGroup);
+// TODO: When the spectator is closed this GraphicsGroup has to be removed
